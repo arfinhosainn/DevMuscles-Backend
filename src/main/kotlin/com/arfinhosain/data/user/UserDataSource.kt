@@ -1,6 +1,6 @@
 package com.arfinhosain.data.user
 
 interface UserDataSource {
-    suspend fun getUsername(username: String): User?
+    suspend fun getUserByUsername(username: String): User?
     suspend fun insertUser(user: User): Boolean
 }

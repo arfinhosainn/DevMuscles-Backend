@@ -1,16 +1,15 @@
 package com.arfinhosain
 
 import com.arfinhosain.data.user.MongoUserDataSource
-import com.arfinhosain.data.user.User
+import com.arfinhosain.hashing.SHA256HashingService
 import com.arfinhosain.plugins.configureMonitoring
 import com.arfinhosain.plugins.configureRouting
 import com.arfinhosain.plugins.configureSecurity
 import com.arfinhosain.plugins.configureSerialization
+import com.arfinhosain.secret.token.JwtTokenService
+import com.arfinhosain.secret.token.TokenConfig
 import io.ktor.server.application.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
 
@@ -29,19 +28,20 @@ fun Application.module() {
 
     val userDataSource = MongoUserDataSource(db)
 
-    GlobalScope.launch {
-        val user = User(
-            username = "test",
-            password = "dfjksdjfsd",
-            salt = "salt"
-        )
-        userDataSource.insertUser(user)
-    }
+    val tokenService = JwtTokenService()
+    val tokenConfig = TokenConfig(
+        issuer = environment.config.property("jwt.issuer").getString(),
+        audience = environment.config.property("jwt.audience").getString(),
+        expiresIn = 365L * 1000L * 60L * 60L * 24L,
+        secret = System.getenv("JWT_SECRET")
+    )
 
+    val hashingService = SHA256HashingService()
 
-    configureRouting()
-    configureMonitoring()
+    configureSecurity(tokenConfig)
+    configureRouting(hashingService, tokenService, tokenConfig, userDataSource)
     configureSerialization()
-    configureSecurity()
+    configureMonitoring()
+
 
 }
