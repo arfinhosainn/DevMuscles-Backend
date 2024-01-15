@@ -6,6 +6,7 @@ import com.arfinhosain.hashing.HashingService
 import com.arfinhosain.hashing.SaltedHash
 import com.arfinhosain.requests.AuthRequests
 import com.arfinhosain.responses.AuthResponse
+import com.arfinhosain.secret.ApiKeys
 import com.arfinhosain.secret.token.TokenClaim
 import com.arfinhosain.secret.token.TokenConfig
 import com.arfinhosain.secret.token.TokenService
@@ -34,6 +35,13 @@ fun Route.signUp(
             return@post
         }
 
+        val apiKey = call.request.headers["X-API-Key"]
+        if (apiKey == null || apiKey != ApiKeys.API_KEY) {
+            call.respond(HttpStatusCode.Unauthorized, "Invalid API key")
+            return@post
+        }
+
+
         val saltedHash = hashingService.generatedSaltedHash(request.password)
         val user = User(
             username = request.username,
@@ -45,7 +53,7 @@ fun Route.signUp(
             call.respond(HttpStatusCode.Conflict)
             return@post
         }
-        call.respond(HttpStatusCode.OK)
+        call.respond(HttpStatusCode.OK, "Signup was successful")
     }
 }
 
@@ -80,6 +88,14 @@ fun Route.signIn(
             return@post
         }
 
+
+        val apiKey = call.request.headers["X-API-Key"]
+        if (apiKey == null || apiKey != ApiKeys.API_KEY) {
+            call.respond(HttpStatusCode.Unauthorized, "Invalid API key")
+            return@post
+        }
+
+
         val token = tokenService.generate(
             config = tokenConfig,
             TokenClaim(
@@ -113,3 +129,4 @@ fun Route.getSecretInfo() {
         }
     }
 }
+
